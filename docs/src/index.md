@@ -1,0 +1,3 @@
+# TriangularShapedCloudInterpolation.jl
+
+Documentation for TriangularShapedCloudInterpolation.jl
