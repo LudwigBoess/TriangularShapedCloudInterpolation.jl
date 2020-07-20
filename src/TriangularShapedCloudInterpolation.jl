@@ -168,7 +168,7 @@ module TriangularShapedCloudInterpolation
         tottscweight = zeros( nx * ny * nz )
 
         # run interpolation
-        for i = 1:dimx, j = 1:dimy, k = 1:dimz 
+        @inbounds @fastmath for i = 1:dimx, j = 1:dimy, k = 1:dimz
 
             index     = @. kx[:,i] + ky[:,j] * nx + kz[:,k] * nxny + 1
             tscweight = @. wx[:,i] * wy[:,j] * wz[:,k]
