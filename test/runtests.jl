@@ -72,9 +72,9 @@ end
                             pos_disk_tsc[:,3], resz, 
                             average=true)
 
-    @test tsc[ 1,  1,  1] ≈ 0.5777647141166327
-    @test tsc[15, 12, 13] ≈ 0.9856472002247593
-    @test tsc[20, 20, 20] ≈ 0.19328020833050694
+    @test tsc[ 1,  1,  1] ≈ 0.0
+    @test tsc[15, 12, 13] ≈ 0.9856472002247592
+    @test tsc[20, 20, 20] ≈ 0.0
 
     @test_nowarn TSCInterpolation(rho, 
                             pos_disk_tsc[:,1], resx, 
