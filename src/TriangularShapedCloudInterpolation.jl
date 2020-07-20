@@ -155,7 +155,7 @@ module TriangularShapedCloudInterpolation
 
         # z direction
         if posz != nothing
-            kz[:,1], kz[:,2], kz[:,3], wz[:,1], wz[:,2], wz[:,3] = get_distances_weights(posy, ny, 
+            kz[:,1], kz[:,2], kz[:,3], wz[:,1], wz[:,2], wz[:,3] = get_distances_weights(posz, nz, 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
         end
