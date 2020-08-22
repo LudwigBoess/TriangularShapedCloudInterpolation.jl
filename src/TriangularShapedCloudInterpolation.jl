@@ -5,9 +5,39 @@
 
 module TriangularShapedCloudInterpolation
 
-    export TSCInterpolation
+    export TSCInterpolation,
+           get_tsc_positions
 
-    @inline function get_distances_weights(pos, n_steps; 
+    """
+        get_tsc_positions(pos::Array{<:Real}, res_elements::Array{<:Integer})
+
+    Returns an array with interpolation positions for a given `pos` array.
+    Number of interpolation positions in each dimension is given by the `res_elements` array.
+    """
+    function get_tsc_positions(pos::Array{<:Real}, res_elements::Array{<:Integer})
+
+        dim = length(pos[1,:])
+
+        pos_tsc = zeros(length(pos[:,1]),dim)
+
+        for i = 1:dim
+            minx = minimum(pos[:,i])
+            maxx = maximum(pos[:,i]) .* (1.0+1.e-6)
+            dx   = -(minx - maxx) / res_elements[i]
+            pos_tsc[:,i] = ( pos[:,i] .- minx ) ./ dx
+        end
+
+        return pos_tsc
+    end
+
+    """
+        get_tsc_positions(pos::Array{<:Real}, res_elements::Integer)
+
+    Helper function if resolution elements in all dimensions are the same.
+    """
+    get_tsc_positions(pos::Array{<:Real}, res_elements::Integer) = get_tsc_positions(pos, [res_elements, res_elements, res_elements])
+
+    @inline function get_distances_weights(pos::Array{<:Real}, n_steps::Integer; 
                                            wraparound::Bool, isolated::Bool)
 
         # Coordinates of nearest grid point (ngp)
@@ -26,8 +56,6 @@ module TriangularShapedCloudInterpolation
             k2 = floor.(Int64, ng .- 0.5)
         end
 
-        # free memory
-        ng = nothing
 
         # Weight of ngp.
         w2 = 0.75 .- dng .* dng
@@ -71,21 +99,27 @@ module TriangularShapedCloudInterpolation
 
     end
 
-    @inline function calculate_weights!(field, tottscweight,
-                                        index, tscweight, value, 
-                                        Nsamples;
+
+    """
+        calculate_weights!(field::Array{<:Real}, tottscweight::Array{<:Real},
+                                        index::Array{<:Integer}, tscweight::Array{<:Real}, 
+                                        value::Array{<:Real}, Nsamples::Integer;
                                         average::Bool=false)
 
+    Helper function to update the weights arrays.
+    """
+    @inline function calculate_weights!(field::Array{<:Real}, tottscweight::Array{<:Real},
+                                        index::Array{<:Integer}, tscweight::Array{<:Real}, 
+                                        value::Array{<:Real}, Nsamples::Integer;
+                                        average::Bool=false)
+
+        for j = 1:Nsamples
+            field[index[j]]  += tscweight[j] * value[j]
+        end
+        
         if average
-            #@inbounds @fastmath @simd 
             for j = 1:Nsamples
-                field[index[j]]        += tscweight[j] * value[j]
                 tottscweight[index[j]] += tscweight[j]
-            end
-        else
-            #@inbounds @fastmath @simd 
-            for j = 1:Nsamples
-                field[index[j]]        += tscweight[j] * value[j]
             end
         end
 
@@ -93,7 +127,8 @@ module TriangularShapedCloudInterpolation
     end
 
 
-    function find_dim_bounds(dim::Int64)
+
+    @inline function find_dim_bounds(dim::Integer)
 
         if dim == 1
             dimx = 3
@@ -113,10 +148,22 @@ module TriangularShapedCloudInterpolation
     end
 
 
-    function TSCInterpolation(  value, 
-                                posx,         nx::Int64, 
-                                posy=nothing, ny::Int64=1, 
-                                posz=nothing, nz::Int64=1; 
+    """
+        TSCInterpolation( value::Array{<:Real}, 
+                          posx::Array{<:Real},        nx::Integer, 
+                          posy::Array{<:Real}=[-1.0], ny::Integer=1, 
+                          posz::Array{<:Real}=[-1.0], nz::Integer=1; 
+                          average::Bool=true, 
+                          wraparound::Bool=false, 
+                          isolated::Bool=false    )
+
+    Runs a TSC interpolation on the `value` array based on the provided positions.
+    Returns a 3D array with interpolated values.
+    """
+    function TSCInterpolation(  value::Array{<:Real}, 
+                                posx::Array{<:Real},        nx::Integer, 
+                                posy::Array{<:Real}=[-1.0], ny::Integer=1, 
+                                posz::Array{<:Real}=[-1.0], nz::Integer=1; 
                                 average::Bool=true, 
                                 wraparound::Bool=false, 
                                 isolated::Bool=false    )
@@ -134,10 +181,10 @@ module TriangularShapedCloudInterpolation
         wz = ones(Nsamples,3)
 
         dim = 3
-        if posz == nothing
+        if posz == [-1.0]
             dim = 2
         end
-        if posy == nothing
+        if posy == [-1.0]
             dim = 1
         end
 
@@ -147,14 +194,14 @@ module TriangularShapedCloudInterpolation
                                                                 isolated   = isolated)
 
         # y direction
-        if posy != nothing
+        if dim > 1
             ky[:,1], ky[:,2], ky[:,3], wy[:,1], wy[:,2], wy[:,3] = get_distances_weights(posy, ny, 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
         end
 
         # z direction
-        if posz != nothing
+        if dim > 2
             kz[:,1], kz[:,2], kz[:,3], wz[:,1], wz[:,2], wz[:,3] = get_distances_weights(posz, nz, 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
