@@ -74,7 +74,34 @@ end
         @test pos_tsc ≈ pos_disk_tsc
     end
 
-    @testset "TSC interpolation" begin
+    @testset "TSC interpolation 1D" begin
+        
+        isolated = false
+        wraparound = false
+
+        rho, pos_disk_tsc, resx, resy, resz = get_test_data()
+
+        @test_nowarn TSCInterpolation(rho, 
+                                pos_disk_tsc[:,1], resx,
+                                average=false, isolated=true)
+
+    end
+
+    @testset "TSC interpolation 2D" begin
+        
+        isolated = false
+        wraparound = false
+
+        rho, pos_disk_tsc, resx, resy, resz = get_test_data()
+
+
+        @test_nowarn TSCInterpolation(rho, 
+                                pos_disk_tsc[:,1:2], resx,
+                                average=false, isolated=true)
+
+    end
+
+    @testset "TSC interpolation 3D" begin
         
         isolated = false
         wraparound = false
@@ -82,9 +109,7 @@ end
         rho, pos_disk_tsc, resx, resy, resz = get_test_data()
 
         tsc = TSCInterpolation(rho, 
-                                pos_disk_tsc[:,1], resx, 
-                                pos_disk_tsc[:,2], resy, 
-                                pos_disk_tsc[:,3], resz, 
+                                pos_disk_tsc, [resx, resy, resz],
                                 average=true)
 
         @test tsc[ 1,  1,  1] ≈ 0.0
@@ -92,15 +117,19 @@ end
         @test tsc[20, 20, 20] ≈ 0.0
 
         @test_nowarn TSCInterpolation(rho, 
-                                pos_disk_tsc[:,1], resx, 
-                                pos_disk_tsc[:,2], resy, 
-                                pos_disk_tsc[:,3], resz, 
+                                pos_disk_tsc, [resx, resy, resz],
                                 average=false, wraparound=true)
 
         @test_nowarn TSCInterpolation(rho, 
-                                pos_disk_tsc[:,1], resx, 
-                                pos_disk_tsc[:,2], resy, 
-                                pos_disk_tsc[:,3], resz, 
+                                pos_disk_tsc, [resx, resy, resz],
+                                average=false, isolated=true)
+
+        @test_nowarn TSCInterpolation(rho, 
+                                pos_disk_tsc, resx,
+                                average=false, isolated=true)
+
+        @test_nowarn TSCInterpolation(rho, 
+                                pos_disk_tsc[:,1], resx,
                                 average=false, isolated=true)
 
     end
