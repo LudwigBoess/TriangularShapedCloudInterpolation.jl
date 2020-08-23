@@ -30,13 +30,14 @@ To interpolate the data (e.g. density) you need to use [`TSCInterpolation`](@ref
 
 ```julia
 
+pos     = rand(1_000,3)
+density = rand(1_000)
+
 res_elements = [20, 20, 20]
 
 pos_tsc = get_tsc_positions(pos, res_elements)
 
-rho_interp = TSCInterpolation( rho, pos_tsc[:,1], res_elements[1], 
-                                    pos_tsc[:,2], res_elements[2],    
-                                    pos_tsc[:,3], res_elements[3] 
+rho_interp = TSCInterpolation( rho, pos_tsc, res_elements, 
                                     average=true)
 ```
 
