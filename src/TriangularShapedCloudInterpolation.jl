@@ -127,7 +127,11 @@ module TriangularShapedCloudInterpolation
     end
 
 
+    """
+        find_dim_bounds(dim::Integer)
 
+    Helper function to get loop limits for dimension loops.
+    """
     @inline function find_dim_bounds(dim::Integer)
 
         if dim == 1
@@ -150,9 +154,8 @@ module TriangularShapedCloudInterpolation
 
     """
         TSCInterpolation( value::Array{<:Real}, 
-                          posx::Array{<:Real},        nx::Integer, 
-                          posy::Array{<:Real}=[-1.0], ny::Integer=1, 
-                          posz::Array{<:Real}=[-1.0], nz::Integer=1; 
+                          pos::Array{<:Real},        
+                          res_elements::Array{<:Integer}, 
                           average::Bool=true, 
                           wraparound::Bool=false, 
                           isolated::Bool=false    )
@@ -161,16 +164,14 @@ module TriangularShapedCloudInterpolation
     Returns a 3D array with interpolated values.
     """
     function TSCInterpolation(  value::Array{<:Real}, 
-                                posx::Array{<:Real},        nx::Integer, 
-                                posy::Array{<:Real}=[-1.0], ny::Integer=1, 
-                                posz::Array{<:Real}=[-1.0], nz::Integer=1; 
+                                pos::Array{<:Real},        
+                                res_elements::Array{<:Integer};
                                 average::Bool=true, 
                                 wraparound::Bool=false, 
                                 isolated::Bool=false    )
 
         Nsamples = length(value)
-        nxny = nx*ny
-
+        
         # allocate arrays for indices and weights
         kx = zeros(Int64, Nsamples,3)
         ky = zeros(Int64, Nsamples,3)
@@ -180,32 +181,38 @@ module TriangularShapedCloudInterpolation
         wy = ones(Nsamples,3)
         wz = ones(Nsamples,3)
 
-        dim = 3
-        if posz == [-1.0]
-            dim = 2
-        end
-        if posy == [-1.0]
-            dim = 1
-        end
+        dim = length(pos[1,:])
+
+        nx = res_elements[1]
 
         # x direction
-        kx[:,1], kx[:,2], kx[:,3], wx[:,1], wx[:,2], wx[:,3] = get_distances_weights(posx, nx, 
-                                                                wraparound = wraparound, 
-                                                                isolated   = isolated)
+        kx[:,1], kx[:,2], kx[:,3], wx[:,1], wx[:,2], wx[:,3] = get_distances_weights(pos[:,1], res_elements[1], 
+                                                                                    wraparound = wraparound, 
+                                                                                    isolated   = isolated)
 
         # y direction
         if dim > 1
-            ky[:,1], ky[:,2], ky[:,3], wy[:,1], wy[:,2], wy[:,3] = get_distances_weights(posy, ny, 
+            ny = res_elements[2] 
+
+            ky[:,1], ky[:,2], ky[:,3], wy[:,1], wy[:,2], wy[:,3] = get_distances_weights(pos[:,2], res_elements[2], 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
+        else
+            ny = 1
         end
 
         # z direction
         if dim > 2
-            kz[:,1], kz[:,2], kz[:,3], wz[:,1], wz[:,2], wz[:,3] = get_distances_weights(posz, nz, 
+            nz = res_elements[3]
+
+            kz[:,1], kz[:,2], kz[:,3], wz[:,1], wz[:,2], wz[:,3] = get_distances_weights(pos[:,3], res_elements[3], 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
+        else
+            nz = 1
         end
+
+        nxny = nx*ny
 
         # find maximum indices for dimension loop
         dimx, dimy, dimz = find_dim_bounds(dim)
@@ -234,5 +241,31 @@ module TriangularShapedCloudInterpolation
         return reshape(field, (nx, ny, nz))
     end
 
+    """
+        TSCInterpolation( value::Array{<:Real}, 
+                          pos::Array{<:Real},        
+                          res_elements::Integer;
+                          average::Bool=true, 
+                          wraparound::Bool=false, 
+                          isolated::Bool=false  )
+
+    Helper function to run TSC interpolation with the same number of resolution elements in all dimensions.
+    """
+    function TSCInterpolation(  value::Array{<:Real}, 
+                                pos::Array{<:Real},        
+                                res_elements::Integer;
+                                average::Bool=true, 
+                                wraparound::Bool=false, 
+                                isolated::Bool=false    )
+
+        dim = length(pos[1,:])
+
+        res = res_elements .* ones(Int64, dim)
+
+        return TSCInterpolation(value, pos, res, 
+                                average=average,
+                                wraparound=wraparound,
+                                isolated=isolated )
+    end
 
 end # module
