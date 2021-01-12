@@ -16,15 +16,16 @@ module TriangularShapedCloudInterpolation
     """
     function get_tsc_positions(pos::Array{<:Real}, res_elements::Array{<:Integer})
 
-        dim = length(pos[1,:])
+        dim = size(pos,1)
+        N   = size(pos,2)
 
-        pos_tsc = zeros(length(pos[:,1]),dim)
+        pos_tsc = Array{eltype(pos[1]),2}(undef, dim, N)
 
-        for i = 1:dim
-            minx = minimum(pos[:,i])
-            maxx = maximum(pos[:,i]) .* (1.0+1.e-6)
+        @inbounds for i = 1:dim
+            minx = minimum(pos[i,:])
+            maxx = maximum(pos[i,:]) * (1.0+1.e-6)
             dx   = -(minx - maxx) / res_elements[i]
-            pos_tsc[:,i] = ( pos[:,i] .- minx ) ./ dx
+            pos_tsc[i,:] = ( pos[i,:] .- minx ) ./ dx
         end
 
         return pos_tsc
@@ -72,7 +73,7 @@ module TriangularShapedCloudInterpolation
 
         # Periodic boundary conditions.
         bad = findall( k2 .== 0 )
-        if length(bad) > 0
+        if size(bad,1) > 0
             k1[bad] .= n_steps - 1
             if isolated
                 w1[bad] .= 0.0
@@ -80,7 +81,7 @@ module TriangularShapedCloudInterpolation
         end
 
         bad = findall( k2 .== (n_steps - 1) )
-        if length(bad) > 0
+        if size(bad,1) > 0
             k3[bad] .= 0
             if isolated
                 w3[bad] .= 0.0
@@ -89,7 +90,7 @@ module TriangularShapedCloudInterpolation
 
         if wraparound
             bad = findall( k2 .== n_steps )
-            if length(bad) > 0
+            if size(bad,1) > 0
                 k2[bad] .= 0
                 k3[bad] .= 1
             end
@@ -113,12 +114,12 @@ module TriangularShapedCloudInterpolation
                                         value::Array{<:Real}, Nsamples::Integer;
                                         average::Bool=false)
 
-        for j = 1:Nsamples
+        @inbounds for j = 1:Nsamples
             field[index[j]]  += tscweight[j] * value[j]
         end
         
         if average
-            for j = 1:Nsamples
+            @inbounds for j = 1:Nsamples
                 tottscweight[index[j]] += tscweight[j]
             end
         end
@@ -170,31 +171,30 @@ module TriangularShapedCloudInterpolation
                                 wraparound::Bool=false, 
                                 isolated::Bool=false    )
 
-        Nsamples = length(value)
+        Nsamples = size(value,1)
         
         # allocate arrays for indices and weights
-        kx = zeros(Int64, Nsamples,3)
-        ky = zeros(Int64, Nsamples,3)
-        kz = zeros(Int64, Nsamples,3)
+        kx = zeros(Int64, 3, Nsamples)
+        ky = zeros(Int64, 3, Nsamples)
+        kz = zeros(Int64, 3, Nsamples)
 
-        wx = ones(Nsamples,3)
-        wy = ones(Nsamples,3)
-        wz = ones(Nsamples,3)
+        wx = ones(3, Nsamples)
+        wy = ones(3, Nsamples)
+        wz = ones(3, Nsamples)
 
-        dim = length(pos[1,:])
+        dim = size(pos,1)
 
         nx = res_elements[1]
 
         # x direction
-        kx[:,1], kx[:,2], kx[:,3], wx[:,1], wx[:,2], wx[:,3] = get_distances_weights(pos[:,1], res_elements[1], 
+        kx[1,:], kx[2,:], kx[3,:], wx[1,:], wx[2,:], wx[3,:] = get_distances_weights(pos[1:1,:], res_elements[1], 
                                                                                     wraparound = wraparound, 
                                                                                     isolated   = isolated)
 
         # y direction
         if dim > 1
-            ny = res_elements[2] 
-
-            ky[:,1], ky[:,2], ky[:,3], wy[:,1], wy[:,2], wy[:,3] = get_distances_weights(pos[:,2], res_elements[2], 
+            ny = res_elements[3]
+            ky[1,:], ky[2,:], ky[3,:], wy[1,:], wy[2,:], wy[3,:] = get_distances_weights(pos[2:2,:], res_elements[2], 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
         else
@@ -205,7 +205,7 @@ module TriangularShapedCloudInterpolation
         if dim > 2
             nz = res_elements[3]
 
-            kz[:,1], kz[:,2], kz[:,3], wz[:,1], wz[:,2], wz[:,3] = get_distances_weights(pos[:,3], res_elements[3], 
+            kz[1,:], kz[2,:], kz[3,:], wz[1,:], wz[2,:], wz[3,:] = get_distances_weights(pos[3:3,:], res_elements[3], 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
         else
@@ -224,8 +224,8 @@ module TriangularShapedCloudInterpolation
         # run interpolation
         @inbounds @fastmath for i = 1:dimx, j = 1:dimy, k = 1:dimz
 
-            index     = @. kx[:,i] + ky[:,j] * nx + kz[:,k] * nxny + 1
-            tscweight = @. wx[:,i] * wy[:,j] * wz[:,k]
+            index     = @. kx[i,:] + ky[j,:] * nx + kz[k,:] * nxny + 1
+            tscweight = @. wx[i,:] * wy[j,:] * wz[k,:]
 
             calculate_weights!( field, tottscweight,
                                 index, tscweight, value, Nsamples,
@@ -258,7 +258,7 @@ module TriangularShapedCloudInterpolation
                                 wraparound::Bool=false, 
                                 isolated::Bool=false    )
 
-        dim = length(pos[1,:])
+        dim = size(pos,1)
 
         res = res_elements .* ones(Int64, dim)
 
