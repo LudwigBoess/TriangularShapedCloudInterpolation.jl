@@ -16,15 +16,19 @@ module TriangularShapedCloudInterpolation
     """
     function get_tsc_positions(pos::Array{<:Real}, res_elements::Array{<:Integer})
 
-        dim = length(pos[1,:])
+        dim   = size(pos,1)
+        Npart = size(pos,2)
 
-        pos_tsc = zeros(length(pos[:,1]),dim)
+        pos_tsc = Array{eltype(pos[1]),2}(undef, Npart, dim)
 
-        for i = 1:dim
-            minx = minimum(pos[:,i])
-            maxx = maximum(pos[:,i]) .* (1.0+1.e-6)
+
+        @inbounds for i = 1:dim
+            minx = minimum(pos[i,:])
+            maxx = maximum(pos[i,:]) .* (1.0+1.e-6)
             dx   = -(minx - maxx) / res_elements[i]
-            pos_tsc[:,i] = ( pos[:,i] .- minx ) ./ dx
+            for j = 1:Npart
+                pos_tsc[j,i] = ( pos[i,j] .- minx ) ./ dx
+            end
         end
 
         return pos_tsc
@@ -181,7 +185,7 @@ module TriangularShapedCloudInterpolation
         wy = ones(Nsamples,3)
         wz = ones(Nsamples,3)
 
-        dim = length(pos[1,:])
+        dim = size(pos,2)
 
         nx = res_elements[1]
 
