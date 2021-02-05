@@ -24,7 +24,7 @@ To interpolate the data (e.g. density) you need to use `TSCInterpolation` like s
 
 ```julia
 
-pos     = rand(1_000,3)
+pos     = rand(3, 1_000)
 density = rand(1_000)
 
 res_elements = [20, 20, 20]
