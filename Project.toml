@@ -1,7 +1,7 @@
 name = "TriangularShapedCloudInterpolation"
 uuid = "51f55a63-7ec5-4b6d-a5a9-9bbf03ec1f62"
 authors = ["LudwigBoess <lboess@usm.lmu.de>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
