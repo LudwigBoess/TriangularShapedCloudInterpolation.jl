@@ -19,7 +19,7 @@ module TriangularShapedCloudInterpolation
         dim   = size(pos,1)
         Npart = size(pos,2)
 
-        pos_tsc = Array{eltype(pos[1]),2}(undef, Npart, dim)
+        pos_tsc = Array{eltype(pos[1]),2}(undef, dim, Npart)
 
 
         @inbounds for i = 1:dim
@@ -27,7 +27,7 @@ module TriangularShapedCloudInterpolation
             maxx = maximum(pos[i,:]) .* (1.0+1.e-6)
             dx   = -(minx - maxx) / res_elements[i]
             for j = 1:Npart
-                pos_tsc[j,i] = ( pos[i,j] .- minx ) ./ dx
+                pos_tsc[i, j] = ( pos[i,j] .- minx ) ./ dx
             end
         end
 
@@ -172,7 +172,8 @@ module TriangularShapedCloudInterpolation
                                 res_elements::Array{<:Integer};
                                 average::Bool=true, 
                                 wraparound::Bool=false, 
-                                isolated::Bool=false    )
+                                isolated::Bool=false,
+                                dim::Integer=3    )
 
         Nsamples = length(value)
         
@@ -185,12 +186,10 @@ module TriangularShapedCloudInterpolation
         wy = ones(Nsamples,3)
         wz = ones(Nsamples,3)
 
-        dim = size(pos,2)
-
         nx = res_elements[1]
 
         # x direction
-        kx[:,1], kx[:,2], kx[:,3], wx[:,1], wx[:,2], wx[:,3] = get_distances_weights(pos[:,1], res_elements[1], 
+        kx[:,1], kx[:,2], kx[:,3], wx[:,1], wx[:,2], wx[:,3] = get_distances_weights(pos[1,:], res_elements[1], 
                                                                                     wraparound = wraparound, 
                                                                                     isolated   = isolated)
 
@@ -198,7 +197,7 @@ module TriangularShapedCloudInterpolation
         if dim > 1
             ny = res_elements[2] 
 
-            ky[:,1], ky[:,2], ky[:,3], wy[:,1], wy[:,2], wy[:,3] = get_distances_weights(pos[:,2], res_elements[2], 
+            ky[:,1], ky[:,2], ky[:,3], wy[:,1], wy[:,2], wy[:,3] = get_distances_weights(pos[2,:], res_elements[2], 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
         else
@@ -209,11 +208,15 @@ module TriangularShapedCloudInterpolation
         if dim > 2
             nz = res_elements[3]
 
-            kz[:,1], kz[:,2], kz[:,3], wz[:,1], wz[:,2], wz[:,3] = get_distances_weights(pos[:,3], res_elements[3], 
+            kz[:,1], kz[:,2], kz[:,3], wz[:,1], wz[:,2], wz[:,3] = get_distances_weights(pos[2,:], res_elements[3], 
                                                                     wraparound = wraparound, 
                                                                     isolated   = isolated)
         else
             nz = 1
+        end
+
+        if dim > 3
+            error("TSC interpolation is only defined for a maximum of 3 dimensions!")
         end
 
         nxny = nx*ny
@@ -260,9 +263,8 @@ module TriangularShapedCloudInterpolation
                                 res_elements::Integer;
                                 average::Bool=true, 
                                 wraparound::Bool=false, 
-                                isolated::Bool=false    )
-
-        dim = length(pos[1,:])
+                                isolated::Bool=false,
+                                dim::Integer=3    )
 
         res = res_elements .* ones(Int64, dim)
 
